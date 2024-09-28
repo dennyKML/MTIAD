@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import Counter
+from math import log2
 from mpl_toolkits.mplot3d import Axes3D
 
 
@@ -32,34 +34,37 @@ def calculate_hartley_measure(channel):
 #     flattened_channel = channel.flatten()
 #     transitions = np.zeros((256, 256))
 #
+#     # Підрахунок кількості переходів між пікселями
 #     for i in range(len(flattened_channel) - 1):
 #         current_pixel = flattened_channel[i]
 #         next_pixel = flattened_channel[i + 1]
 #         transitions[current_pixel, next_pixel] += 1
 #
-#     transition_probabilities = transitions / np.sum(transitions)
+#     # Нормалізація кожного рядка окремо
+#     row_sums = np.sum(transitions, axis=1, keepdims=True)
+#
+#     # Щоб уникнути ділення на 0, замінюємо нульові суми на 1 (бо немає переходів для цих значень)
+#     row_sums[row_sums == 0] = 1
+#
+#     transition_probabilities = transitions / row_sums
 #     return transition_probabilities
 
 
-# Функція для обчислення Марковського процесу першого порядку
-def calculate_first_order_markov(channel):
-    flattened_channel = channel.flatten()
-    transitions = np.zeros((256, 256))
+def calculate_first_order_markov(component):
+    transitions = Counter()
+    for i in range(component.shape[0] - 1):
+        for j in range(component.shape[1] - 1):
+            current_pixel = component[i, j]
+            next_pixel_x = component[i + 1, j]
+            next_pixel_y = component[i, j + 1]
+            transitions[(current_pixel, next_pixel_x)] += 1
+            transitions[(current_pixel, next_pixel_y)] += 1
 
-    # Підрахунок кількості переходів між пікселями
-    for i in range(len(flattened_channel) - 1):
-        current_pixel = flattened_channel[i]
-        next_pixel = flattened_channel[i + 1]
-        transitions[current_pixel, next_pixel] += 1
+    total_transitions = sum(transitions.values())
+    markov_prob = {key: value / total_transitions for key, value in transitions.items()}
 
-    # Нормалізація кожного рядка окремо
-    row_sums = np.sum(transitions, axis=1, keepdims=True)
-
-    # Щоб уникнути ділення на 0, замінюємо нульові суми на 1 (бо немає переходів для цих значень)
-    row_sums[row_sums == 0] = 1
-
-    transition_probabilities = transitions / row_sums
-    return transition_probabilities
+    markov_entropy = -sum(p * log2(p) for p in markov_prob.values())
+    return markov_entropy
 
 
 # Функція для сегментації зображення
@@ -153,30 +158,54 @@ def compare_results(image, segment_size):
 
 # Функція для візуалізації результатів
 def visualize_results(segment_results, segment_size, total_entropy, total_hartley, total_markov):
-    fig = plt.figure(figsize=(18, 15))
-
     channels = ['R', 'G', 'B']
     colormap = ['Reds', 'Greens', 'Blues']
 
-    # Створюємо 3D графіки для кожного каналу
+    # Перший набір графіків - Ентропія Шенона
+    fig1 = plt.figure(figsize=(18, 10))
     for idx, color in enumerate(channels):
         X, Y = np.meshgrid(np.arange(segment_size[0]), np.arange(segment_size[1]))
-        ax1 = fig.add_subplot(3, 3, idx * 3 + 1, projection='3d')
+        ax = fig1.add_subplot(1, 3, idx + 1, projection='3d')
         Z_entropy = np.array(segment_results['entropies'][color]).reshape(segment_size)
-        ax1.plot_surface(X, Y, Z_entropy, cmap=colormap[idx])
-        ax1.set_title(f'{color} Entropy')
+        ax.plot_surface(X, Y, Z_entropy, cmap=colormap[idx])
+        ax.set_xlabel('Segment Row')
+        ax.set_ylabel('Segment Column')
+        ax.set_zlabel('Entropy')
+        ax.set_title(f'{color} Entropy')
 
-        ax2 = fig.add_subplot(3, 3, idx * 3 + 2, projection='3d')
+    plt.suptitle(f'Entropy (Shannon) for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=16)
+    plt.tight_layout()
+    plt.show()
+
+    # Другий набір графіків - Міра Хартлі
+    fig2 = plt.figure(figsize=(18, 10))
+    for idx, color in enumerate(channels):
+        X, Y = np.meshgrid(np.arange(segment_size[0]), np.arange(segment_size[1]))
+        ax = fig2.add_subplot(1, 3, idx + 1, projection='3d')
         Z_hartley = np.array(segment_results['hartleys'][color]).reshape(segment_size)
-        ax2.plot_surface(X, Y, Z_hartley, cmap=colormap[idx])
-        ax2.set_title(f'{color} Hartley Measure')
+        ax.plot_surface(X, Y, Z_hartley, cmap=colormap[idx])
+        ax.set_xlabel('Segment Row')
+        ax.set_ylabel('Segment Column')
+        ax.set_zlabel('Hartley Measure')
+        ax.set_title(f'{color} Hartley Measure')
 
-        ax3 = fig.add_subplot(3, 3, idx * 3 + 3, projection='3d')
+    plt.suptitle(f'Hartley Measure for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=16)
+    plt.tight_layout()
+    plt.show()
+
+    # Третій набір графіків - Марковський процес
+    fig3 = plt.figure(figsize=(18, 10))
+    for idx, color in enumerate(channels):
+        X, Y = np.meshgrid(np.arange(segment_size[0]), np.arange(segment_size[1]))
+        ax = fig3.add_subplot(1, 3, idx + 1, projection='3d')
         Z_markov = np.array(segment_results['markovs'][color]).reshape(segment_size)
-        ax3.plot_surface(X, Y, Z_markov, cmap=colormap[idx])
-        ax3.set_title(f'{color} Markov Process')
+        ax.plot_surface(X, Y, Z_markov, cmap=colormap[idx])
+        ax.set_xlabel('Segment Row')
+        ax.set_ylabel('Segment Column')
+        ax.set_zlabel('Markov Process')
+        ax.set_title(f'{color} Markov Process')
 
-    plt.suptitle(f'Information Measures for RGB Channels', fontsize=16)
+    plt.suptitle(f'Markov Process for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=16)
     plt.tight_layout()
     plt.show()
 
