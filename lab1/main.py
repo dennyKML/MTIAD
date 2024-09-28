@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,7 +17,7 @@ def convert_to_grayscale(rgb_image):
     r = rgb_image[:, :, 0]
     g = rgb_image[:, :, 1]
     b = rgb_image[:, :, 2]
-    grayscale_image = 0.299 * r + 0.587 * g + 0.114 * b
+    grayscale_image = 0.2126 * r + 0.7142 * g + 0.0722 * b
     return grayscale_image.astype(np.uint8)
 
 
@@ -29,20 +31,18 @@ def threshold_processing(grayscale_image, threshold):
     return thresholded_image, histogram
 
 
-# 4. Сегментація окремо для кожної компоненти RGB та побудова гістограм
-def segment_image(grayscale_image, segment_size):
+# 4. Сегментація та побудова гістограм
+def segment_image(grayscale_image, segment_pixel_size):
     h, w = grayscale_image.shape
+    segment_height, segment_width = segment_pixel_size
     segments = []
     histograms = []
 
-    segment_height = h // segment_size[0]
-    segment_width = w // segment_size[1]
-
-    for i in range(segment_size[0]):
-        for j in range(segment_size[1]):
-            # Вирізаємо сегмент
-            segment = grayscale_image[i * segment_height:(i + 1) * segment_height,
-                      j * segment_width:(j + 1) * segment_width]
+    # Проходимо по зображенню і вирізаємо сегменти заданого розміру
+    for i in range(0, h, segment_height):
+        for j in range(0, w, segment_width):
+            # Вирізаємо сегмент, який має розмір segment_pixel_size (наприклад, 8x8 пікселів)
+            segment = grayscale_image[i:i + segment_height, j:j + segment_width]
             segments.append(segment)
 
             # Створюємо гістограму для кожного сегмента
@@ -86,16 +86,16 @@ def main(image_path, threshold_value):
     plt.title('Histogram')
     plt.show()
 
-    # 4. Сегментація зображення окремо для кожного каналу
+    # 4. Сегментація зображення з фіксованим розміром сегментів
     try:
-        segment_rows = int(input("Enter the number of rows for segmentation (e.g., 4): "))
-        segment_cols = int(input("Enter the number of columns for segmentation (e.g., 4): "))
-        segment_size = (segment_rows, segment_cols)
+        segment_height = int(input("Enter the height of each segment in pixels (e.g., 8): "))
+        segment_width = int(input("Enter the width of each segment in pixels (e.g., 8): "))
+        segment_size = (segment_height, segment_width)
     except ValueError:
-        print("Invalid input. Please enter valid integers for segmentation size.")
+        print("Invalid input. Please enter valid integers for segment size.")
         return
 
-    # Передаємо сіре зображення
+    # Передаємо сіре зображення і розмір сегмента
     segments, histograms = segment_image(grayscale_image, segment_size)
 
     # Відображаємо сегменти і гістограми для градацій сірого зображення
@@ -114,12 +114,13 @@ def main(image_path, threshold_value):
         plt.title(f'Histogram for Segment {i + 1}')
 
         # Налаштовуємо вісь
-        plt.xticks(np.arange(0, 256, 15), rotation=45)  # Крок на осі X - 25
+        plt.xticks(np.arange(0, 256, 15), rotation=45)  # Крок на осі X - 15
 
         plt.xlabel('Intensity Value')
         plt.ylabel('Pixel Count')
 
         plt.show()
+        # time.sleep(1)
 
 
 # Виклик основної програми
