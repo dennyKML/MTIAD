@@ -50,19 +50,21 @@ def calculate_hartley_measure(channel):
 #     return transition_probabilities
 
 
-def calculate_first_order_markov(component):
+def calculate_first_order_markov(channel):
+    flattened_component = channel.flatten()
     transitions = Counter()
-    for i in range(component.shape[0] - 1):
-        for j in range(component.shape[1] - 1):
-            current_pixel = component[i, j]
-            next_pixel_x = component[i + 1, j]
-            next_pixel_y = component[i, j + 1]
-            transitions[(current_pixel, next_pixel_x)] += 1
-            transitions[(current_pixel, next_pixel_y)] += 1
 
+    # Підрахунок переходів між сусідніми пікселями по горизонталі
+    for i in range(len(flattened_component) - 1):
+        current_pixel = flattened_component[i]
+        next_pixel = flattened_component[i + 1]
+        transitions[(current_pixel, next_pixel)] += 1
+
+    # Обчислення ймовірностей переходів
     total_transitions = sum(transitions.values())
     markov_prob = {key: value / total_transitions for key, value in transitions.items()}
 
+    # Обчислення Марковської ентропії
     markov_entropy = -sum(p * log2(p) for p in markov_prob.values())
     return markov_entropy
 
