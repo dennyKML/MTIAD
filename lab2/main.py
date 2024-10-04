@@ -156,6 +156,7 @@ def compare_results(image, segment_size):
         print(f"  Average segment Markov Process: {segment_results['avg_markov'][color]}\n")
 
     visualize_results(segment_results, segment_size, whole_image_entropy, whole_image_hartley, whole_image_markov)
+    visualize_comparative_3d(segment_results, segment_size)
 
 
 # Функція для візуалізації результатів
@@ -164,50 +165,108 @@ def visualize_results(segment_results, segment_size, total_entropy, total_hartle
     colormap = ['Reds', 'Greens', 'Blues']
 
     # Перший набір графіків - Ентропія Шенона
-    fig1 = plt.figure(figsize=(18, 10))
+    fig1 = plt.figure(figsize=(30, 15))
     for idx, color in enumerate(channels):
         X, Y = np.meshgrid(np.arange(segment_size[0]), np.arange(segment_size[1]))
         ax = fig1.add_subplot(1, 3, idx + 1, projection='3d')
         Z_entropy = np.array(segment_results['entropies'][color]).reshape(segment_size)
         ax.plot_surface(X, Y, Z_entropy, cmap=colormap[idx])
-        ax.set_xlabel('Segment Row')
-        ax.set_ylabel('Segment Column')
-        ax.set_zlabel('Entropy')
-        ax.set_title(f'{color} Entropy')
+        ax.set_xlabel('Segment Row', fontsize=16)
+        ax.set_ylabel('Segment Column', fontsize=16)
+        ax.set_zlabel('Entropy', fontsize=16)
+        ax.set_title(f'{color} Entropy', fontsize=24)
 
-    plt.suptitle(f'Entropy (Shannon) for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=16)
+    plt.suptitle(f'Entropy (Shannon) for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=32)
     plt.tight_layout()
     plt.show()
 
     # Другий набір графіків - Міра Хартлі
-    fig2 = plt.figure(figsize=(18, 10))
+    fig2 = plt.figure(figsize=(30, 15))
     for idx, color in enumerate(channels):
         X, Y = np.meshgrid(np.arange(segment_size[0]), np.arange(segment_size[1]))
         ax = fig2.add_subplot(1, 3, idx + 1, projection='3d')
         Z_hartley = np.array(segment_results['hartleys'][color]).reshape(segment_size)
         ax.plot_surface(X, Y, Z_hartley, cmap=colormap[idx])
-        ax.set_xlabel('Segment Row')
-        ax.set_ylabel('Segment Column')
-        ax.set_zlabel('Hartley Measure')
-        ax.set_title(f'{color} Hartley Measure')
+        ax.set_xlabel('Segment Row', fontsize=16)
+        ax.set_ylabel('Segment Column', fontsize=16)
+        ax.set_zlabel('Hartley Measure', fontsize=16)
+        ax.set_title(f'{color} Hartley Measure', fontsize=24)
 
-    plt.suptitle(f'Hartley Measure for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=16)
+    plt.suptitle(f'Hartley Measure for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=32)
     plt.tight_layout()
     plt.show()
 
     # Третій набір графіків - Марковський процес
-    fig3 = plt.figure(figsize=(18, 10))
+    fig3 = plt.figure(figsize=(30, 15))
     for idx, color in enumerate(channels):
         X, Y = np.meshgrid(np.arange(segment_size[0]), np.arange(segment_size[1]))
         ax = fig3.add_subplot(1, 3, idx + 1, projection='3d')
         Z_markov = np.array(segment_results['markovs'][color]).reshape(segment_size)
         ax.plot_surface(X, Y, Z_markov, cmap=colormap[idx])
-        ax.set_xlabel('Segment Row')
-        ax.set_ylabel('Segment Column')
-        ax.set_zlabel('Markov Process')
-        ax.set_title(f'{color} Markov Process')
+        ax.set_xlabel('Segment Row', fontsize=16)
+        ax.set_ylabel('Segment Column', fontsize=16)
+        ax.set_zlabel('Markov Process', fontsize=16)
+        ax.set_title(f'{color} Markov Process', fontsize=24)
 
-    plt.suptitle(f'Markov Process for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=16)
+    plt.suptitle(f'Markov Process for RGB Channels in {segment_size[0]}x{segment_size[1]} segments', fontsize=32)
+    plt.tight_layout()
+    plt.show()
+
+    # Порівняльний графік Шенона та Маркова
+    fig4 = plt.figure(figsize=(30, 15))
+    for idx, color in enumerate(channels):
+        X, Y = np.meshgrid(np.arange(segment_size[0]), np.arange(segment_size[1]))
+
+        ax1 = fig4.add_subplot(1, 3, idx + 1)
+        Z_entropy = np.array(segment_results['entropies'][color]).reshape(segment_size)
+        Z_markov = np.array(segment_results['markovs'][color]).reshape(segment_size)
+
+        # Ентропія Шенона
+        ax1.plot(Z_entropy.flatten(), label='Entropy (Shannon)', color='blue')
+        ax1.set_xlabel('Segment Index', fontsize=16)
+        ax1.set_ylabel('Entropy (Shannon)', fontsize=16, color='blue')
+
+        # Марковський процес на тій же осі
+        ax2 = ax1.twinx()
+        ax2.plot(Z_markov.flatten(), label='Markov Process', color='red')
+        ax2.set_ylabel('Markov Process', fontsize=16, color='red')
+
+        ax1.set_title(f'Comparison of Shannon Entropy and Markov Process for {color} channel', fontsize=18)
+
+    plt.tight_layout()
+    plt.show()
+
+
+# Функція для візуалізації порівняння результатів у вигляді 3D графіка
+def visualize_comparative_3d(segment_results, segment_size):
+    channels = ['R', 'G', 'B']
+    colormap_entropy = ['Reds', 'Greens', 'Blues']
+    colormap_markov = ['Purples', 'Oranges', 'Greys']
+
+    fig = plt.figure(figsize=(30, 15))
+
+    for idx, color in enumerate(channels):
+        Z_entropy = np.array(segment_results['entropies'][color]).reshape(segment_size)
+        Z_markov = np.array(segment_results['markovs'][color]).reshape(segment_size)
+
+        X, Y = np.meshgrid(np.arange(segment_size[1]), np.arange(segment_size[0]))
+
+        ax = fig.add_subplot(1, 3, idx + 1, projection='3d')
+
+        # 3D поверхня для Шенонової ентропії
+        ax.plot_surface(X, Y, Z_entropy, cmap=colormap_entropy[idx], edgecolor='none', alpha=0.7)
+
+        # Додаємо Марковський процес на той самий графік
+        ax.plot_surface(X, Y, Z_markov, cmap=colormap_markov[idx], edgecolor='none', alpha=0.5)
+
+        # Налаштування осей та підписів
+        ax.set_xlabel('Segment Column', fontsize=16)
+        ax.set_ylabel('Segment Row', fontsize=16)
+        ax.set_zlabel('Value', fontsize=16)
+        ax.set_title(f'{color} Channel: Shannon Entropy & Markov Process', fontsize=24)
+
+    plt.suptitle(f'3D Comparison of Shannon Entropy and Markov Process in {segment_size[0]}x{segment_size[1]} segments',
+                 fontsize=32)
     plt.tight_layout()
     plt.show()
 
