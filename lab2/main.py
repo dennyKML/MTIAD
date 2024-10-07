@@ -49,24 +49,33 @@ def calculate_hartley_measure(channel):
 #     transition_probabilities = transitions / row_sums
 #     return transition_probabilities
 
-
+# Функція для обчислення Марковської ентропії першого порядку
 def calculate_first_order_markov(channel):
-    flattened_component = channel.flatten()
+    flattened_channel = channel.flatten()
     transitions = Counter()
 
     # Підрахунок переходів між сусідніми пікселями по горизонталі
-    for i in range(len(flattened_component) - 1):
-        current_pixel = flattened_component[i]
-        next_pixel = flattened_component[i + 1]
+    for i in range(len(flattened_channel) - 1):
+        current_pixel = flattened_channel[i]
+        next_pixel = flattened_channel[i + 1]
         transitions[(current_pixel, next_pixel)] += 1
 
-    # Обчислення ймовірностей переходів
+    # Обчислення ймовірностей переходів P(i) та P(j|i)
     total_transitions = sum(transitions.values())
-    markov_prob = {key: value / total_transitions for key, value in transitions.items()}
+    transition_probabilities = {key: value / total_transitions for key, value in transitions.items()}
 
-    # Обчислення Марковської ентропії
-    markov_entropy = -sum(p * log2(p) for p in markov_prob.values())
-    return markov_entropy
+    # Обчислення ймовірності для кожного пікселя P(i)
+    pixel_counts = Counter(flattened_channel)
+    total_pixels = len(flattened_channel)
+    pixel_probabilities = {pixel: count / total_pixels for pixel, count in pixel_counts.items()}
+
+    # Обчислення Марковської ентропії за формулою H_M = - Σ P(i) P(j|i) log2(P(j|i))
+    markov_entropy = 0
+    for (i, j), p_ij in transition_probabilities.items():
+        p_i = pixel_probabilities[i]
+        markov_entropy += p_i * p_ij * log2(p_ij)
+
+    return -markov_entropy
 
 
 # Функція для сегментації зображення
