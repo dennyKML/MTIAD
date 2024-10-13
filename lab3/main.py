@@ -1,3 +1,5 @@
+import math
+
 import cv2
 import socket
 import numpy as np
@@ -72,14 +74,14 @@ def calculate_transfer_time_over_protocol(image, host='127.0.0.1', port=5000):
 
 
 # Функція для накладання моделі помилок (випадковий шум)
-def apply_noise(image, noise_level=100):
+def apply_noise(image, noise_level=130):
     noise = np.random.randint(0, noise_level, image.shape, dtype='uint8')
     noisy_image = image + noise
     return noisy_image
 
 
 # Додавання Гауссового шуму до зображення
-def add_gaussian_noise(image, mean=0, std=100):
+def add_gaussian_noise(image, mean=0, std=30):
     gauss = np.random.normal(mean, std, image.shape).astype(np.float32)
     noisy_image = image + gauss
     noisy_image = np.clip(noisy_image, 0, 255).astype(np.uint8)
@@ -121,32 +123,28 @@ def calculate_rmse(original_image, noisy_image):
 
 
 # Функція для розрахунку пікового відношення сигнал/шум (PSNR по кожному каналу)
-def calculate_psnr(original_image, noisy_image, max_pixel_value=255):
+def calculate_psnr_two(original_image, noisy_image, max_pixel_value=255):
     psnrs = []
     for i in range(3):  # Канали R, G, B
         mse = np.mean((original_image[:, :, i] - noisy_image[:, :, i]) ** 2)
         if mse == 0:
             psnrs.append(float('inf'))
         else:
-            psnrs.append(float(10 * np.log10(max_pixel_value ** 2 / mse)))
+            psnrs.append(float(20 * np.log10(max_pixel_value / np.sqrt(mse))))
     return psnrs
 
 
-def calculate_noise_and_snr(image):
-    noise_levels = []
-    signal_levels = []
-    snrs = []
+def calculate_psnr(image):
+    psnrs = []
     for i in range(3):  # Канали R, G, B
-        noise_level = np.std(image[:, :, i])  # Уровень шума
-        signal_level = np.mean(image[:, :, i])  # Уровень сигнала
-        noise_levels.append(noise_level)
-        signal_levels.append(signal_level)
-        if noise_level != 0:
-            snr = 10 * np.log10(signal_level / noise_level)  # SNR
+        # Обчислити MSE
+        mse = np.mean((image[:, :, i] - np.mean(image[:, :, i])) ** 2)
+        if mse == 0:  # Якщо MSE дорівнює нулю
+            psnrs.append(float('inf'))
         else:
-            snr = float('inf')  # Если шум нулевой, SNR бесконечен
-        snrs.append(float(snr))
-    return noise_levels, signal_levels, snrs
+            psnr = 20 * np.log10(255 / np.sqrt(mse))
+            psnrs.append(float(psnr))
+    return psnrs
 
 
 # Функція для відображення зображення
@@ -170,11 +168,11 @@ def analyze_image(image_path, segment_size=8):
     print(f"\nЧас передачі зображення через протокол: {transfer_time:.6f} секунд")
 
     # Розрахунок шуму та SNR для оригінального зображення
-    noise_levels, signal_levels, snrs = calculate_noise_and_snr(image)
-    print(f"Пікове відношення сигнал/шум (PSNR) для каналів (R, G, B): {snrs}")
+    snrs = calculate_psnr(image)
+    print(f"Пікове відношення сигнал/шум для каналів (R, G, B) до накладання помилок: {snrs}")
 
-    # noisy_image = apply_noise(image)
-    noisy_image = add_gaussian_noise(image)
+    noisy_image = apply_noise(image)
+    # noisy_image = add_gaussian_noise(image)
 
     # Відображення шумного зображення
     show_image("Noisy Image", noisy_image)
@@ -191,10 +189,10 @@ def analyze_image(image_path, segment_size=8):
     print(f"\nКоефіцієнт нормованої кореляції (R, G, B): {correlation}")
 
     rmse = calculate_rmse(image, noisy_image)
-    print(f"Середньоквадратичне відхилення (RMSE) для каналів (R, G, B): {rmse}")
+    print(f"Середньоквадратичне відхилення для каналів (R, G, B): {rmse}")
 
-    psnr = calculate_psnr(image, noisy_image)
-    print(f"Пікове відношення сигнал/шум (PSNR) для каналів (R, G, B): {psnr}")
+    psnr = calculate_psnr_two(image, noisy_image)
+    print(f"Пікове відношення сигнал/шум для каналів (R, G, B) після накладання помилок: {psnr}")
 
     # Сегментація
     segments = segment_image(image, segment_size)
@@ -208,7 +206,7 @@ def analyze_image(image_path, segment_size=8):
         zip(segments, noisy_segments), lambda pair: calculate_rmse(pair[0], pair[1])
     )
     avg_psnr = calculate_average_metric_for_segments(
-        zip(segments, noisy_segments), lambda pair: calculate_psnr(pair[0], pair[1])
+        zip(segments, noisy_segments), lambda pair: calculate_psnr_two(pair[0], pair[1])
     )
 
     print(f"\nСередній коефіцієнт нормованої кореляції для сегментів (R, G, B): {avg_correlation}")
