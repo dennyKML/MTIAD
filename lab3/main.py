@@ -132,6 +132,23 @@ def calculate_psnr(original_image, noisy_image, max_pixel_value=255):
     return psnrs
 
 
+def calculate_noise_and_snr(image):
+    noise_levels = []
+    signal_levels = []
+    snrs = []
+    for i in range(3):  # Канали R, G, B
+        noise_level = np.std(image[:, :, i])  # Уровень шума
+        signal_level = np.mean(image[:, :, i])  # Уровень сигнала
+        noise_levels.append(noise_level)
+        signal_levels.append(signal_level)
+        if noise_level != 0:
+            snr = 10 * np.log10(signal_level / noise_level)  # SNR
+        else:
+            snr = float('inf')  # Если шум нулевой, SNR бесконечен
+        snrs.append(float(snr))
+    return noise_levels, signal_levels, snrs
+
+
 # Функція для відображення зображення
 def show_image(title, image):
     plt.figure()
@@ -152,8 +169,9 @@ def analyze_image(image_path, segment_size=8):
     transfer_time = calculate_transfer_time_over_protocol(image)
     print(f"\nЧас передачі зображення через протокол: {transfer_time:.6f} секунд")
 
-    psnr = calculate_psnr(image, image)
-    print(f"Пікове відношення сигнал/шум (PSNR) для каналів (R, G, B): {psnr}")
+    # Розрахунок шуму та SNR для оригінального зображення
+    noise_levels, signal_levels, snrs = calculate_noise_and_snr(image)
+    print(f"Пікове відношення сигнал/шум (PSNR) для каналів (R, G, B): {snrs}")
 
     # noisy_image = apply_noise(image)
     noisy_image = add_gaussian_noise(image)
