@@ -152,6 +152,9 @@ def analyze_image(image_path, segment_size=8):
     transfer_time = calculate_transfer_time_over_protocol(image)
     print(f"\nЧас передачі зображення через протокол: {transfer_time:.6f} секунд")
 
+    psnr = calculate_psnr(image, image)
+    print(f"Пікове відношення сигнал/шум (PSNR) для каналів (R, G, B): {psnr}")
+
     # noisy_image = apply_noise(image)
     noisy_image = add_gaussian_noise(image)
 
