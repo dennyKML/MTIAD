@@ -63,6 +63,33 @@ def calculate_correlation(segment):
     return np.mean(correlations)  # Повертаємо середню кореляцію по всіх каналах
 
 
+# Функція для обчислення середньої довжини серії однакових елементів
+def calculate_series_length(segment, axis=0):
+    series_lengths = []
+    for i in range(3):  # Канали R, G, B
+        if axis == 0:  # по рядках
+            data = segment[:, :, i]
+        else:  # по стовпцях
+            data = segment[:, :, i].T
+        for row in data:
+            series_length = np.diff(np.where(np.diff(row) != 0)[0]) + 1  # знаходження довжин серій
+            series_lengths.append(np.mean(series_length) if len(series_length) > 0 else len(row))
+    return np.mean(series_lengths)
+
+
+# Функція для підрахунку кількості перепадів яскравості в сегменті
+def calculate_brightness_transitions(segment):
+    transitions = []
+    for i in range(3):  # Канали R, G, B
+        data = segment[:, :, i]
+        # Підрахунок змін яскравості по рядках
+        row_transitions = np.sum(np.abs(np.diff(data, axis=0)) > 0, axis=0)
+        # Підрахунок змін яскравості по стовпцях
+        col_transitions = np.sum(np.abs(np.diff(data, axis=1)) > 0, axis=1)
+        transitions.append(np.mean(row_transitions) + np.mean(col_transitions))
+    return np.mean(transitions)
+
+
 # Функція для візуалізації класифікації сегментів за метрикою з порогом
 def visualize_segments(image, segments, metrics, threshold, title):
     classified_image = np.zeros_like(image)
@@ -122,6 +149,22 @@ def analyze_image_with_threshold(image_path, segment_size=8):
     correlation_map = np.array(correlations).reshape(image.shape[0] // segment_size, image.shape[1] // segment_size)
     show_metric_heatmap(correlation_map, 'Correlation Heatmap')
     visualize_segments(image, segments, correlations, threshold=0.5, title='Classified by Correlation')
+
+    # Розрахунок серій однакових елементів та перепадів яскравості
+    series_lengths = [calculate_series_length(segment) for segment in segments]
+    brightness_transitions = [calculate_brightness_transitions(segment) for segment in segments]
+
+    # Відображення метрик та класифікація
+    series_length_map = np.array(series_lengths).reshape(image.shape[0] // segment_size, image.shape[1] // segment_size)
+    brightness_transition_map = np.array(brightness_transitions).reshape(image.shape[0] // segment_size,
+                                                                         image.shape[1] // segment_size)
+
+    show_metric_heatmap(series_length_map, 'Series Length Heatmap')
+    visualize_segments(image, segments, series_lengths, threshold=2.01, title='Classified by Series Length')
+
+    show_metric_heatmap(brightness_transition_map, 'Brightness Transitions Heatmap')
+    visualize_segments(image, segments, brightness_transitions, threshold=13.5,
+                       title='Classified by Brightness Transitions')
 
 
 # Виклик основної функції
