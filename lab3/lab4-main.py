@@ -160,11 +160,148 @@ def analyze_image_with_threshold(image_path, segment_size=8):
                                                                          image.shape[1] // segment_size)
 
     show_metric_heatmap(series_length_map, 'Series Length Heatmap')
-    visualize_segments(image, segments, series_lengths, threshold=2.01, title='Classified by Series Length')
+    visualize_segments(image, segments, series_lengths, threshold=2.05, title='Classified by Series Length')
 
     show_metric_heatmap(brightness_transition_map, 'Brightness Transitions Heatmap')
-    visualize_segments(image, segments, brightness_transitions, threshold=13.5,
+    visualize_segments(image, segments, brightness_transitions, threshold=13.2,
                        title='Classified by Brightness Transitions')
+
+
+# Функція для обчислення таблиці середніх значень метрик для порівняння
+def calculate_metrics_table(image_path, segment_size):
+    image = load_image(image_path)
+    image = np.array(image, dtype=np.float64)
+    segments = segment_image(image, segment_size)
+
+    # Обчислення метрик
+    entropies = [calculate_entropy(segment) for segment in segments]
+    rmses = [calculate_rmse(segment) for segment in segments]
+    correlations = [calculate_correlation(segment) for segment in segments]
+    series_lengths = [calculate_series_length(segment) for segment in segments]
+    brightness_transitions = [calculate_brightness_transitions(segment) for segment in segments]
+
+    # Розрахунок середніх значень метрик
+    avg_entropy = np.mean(entropies)
+    avg_rmse = np.mean(rmses)
+    avg_correlation = np.mean(correlations)
+    avg_series_length = np.mean(series_lengths)
+    avg_brightness_transition = np.mean(brightness_transitions)
+
+    return [avg_entropy, avg_rmse, avg_correlation, avg_series_length, avg_brightness_transition]
+
+
+# Функція для створення таблиці порівняння метрик
+def display_comparison_table(image_paths, segment_size):
+    # Заголовки таблиці
+    metric_names = ["Entropy", "RMSE", "Correlation", "Series Length", "Brightness Transitions"]
+    table_data = [calculate_metrics_table(path, segment_size) for path in image_paths]
+
+    # Додаємо імена зображень до таблиці
+    rows = [f"Image {i + 1}" for i in range(len(image_paths))]
+    table_data.insert(0, metric_names)
+    rows.insert(0, "Metric")
+
+    # Створюємо таблицю
+    fig, ax = plt.subplots()
+    ax.axis('tight')
+    ax.axis('off')
+    table = ax.table(cellText=[rows] + list(map(list, zip(*table_data))), loc="center", cellLoc="center")
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    plt.title("Comparison of Metrics")
+    plt.show()
+
+
+# Функція для розрахунку метрик для всіх сегментів зображення
+def calculate_metrics_for_segments(image_path, segment_size):
+    image = load_image(image_path)
+    image = np.array(image, dtype=np.float64)
+    segments = segment_image(image, segment_size)
+
+    # Обчислення метрик для всіх сегментів
+    entropies = [calculate_entropy(segment) for segment in segments]
+    rmses = [calculate_rmse(segment) for segment in segments]
+    correlations = [calculate_correlation(segment) for segment in segments]
+    series_lengths = [calculate_series_length(segment) for segment in segments]
+    brightness_transitions = [calculate_brightness_transitions(segment) for segment in segments]
+
+    return {
+        "Ентропія Шеннона": entropies,
+        "Кореневе середньоквадратичне відхилення": rmses,
+        "Кореляція": correlations,
+        "Довжина серій однакових елементів": series_lengths,
+        "Кількість перепадів яскравості": brightness_transitions
+    }
+
+
+# Функція для створення графіків порівняння метрик для всіх сегментів
+def display_metrics_graphs(image_paths, segment_size):
+    # Отримуємо метрики для кожного зображення
+    metrics_data = [calculate_metrics_for_segments(path, segment_size) for path in image_paths]
+
+    # Назви метрик для графіків
+    metric_names = ["Ентропія Шеннона", "Кореневе середньоквадратичне відхилення", "Кореляція", "Довжина серій однакових елементів", "Кількість перепадів яскравості"]
+
+    # Відображення графіків для кожної метрики
+    fig, axes = plt.subplots(nrows=len(metric_names), ncols=1, figsize=(10, 20))
+    fig.tight_layout(pad=5.0)
+
+    for idx, metric in enumerate(metric_names):
+        ax = axes[idx]
+
+        # Побудова графіку для кожного зображення
+        for i, metric_values in enumerate(metrics_data):
+            ax.plot(metric_values[metric], label=f"Зображення {i + 1}")
+
+        # Налаштування заголовку та осей
+        ax.set_title(f"{metric} для всіх сегментів")
+        ax.set_xlabel("Індекс сегменту")
+        ax.set_ylabel(metric)
+        ax.legend()
+        ax.grid(True)
+
+    plt.show()
+
+
+# Функція для розрахунку метрик для всіх сегментів зображення
+def calculate_metrics_for_segments(image_path, segment_size):
+    image = load_image(image_path)
+    image = np.array(image, dtype=np.float64)
+    segments = segment_image(image, segment_size)
+
+    # Обчислення метрик для всіх сегментів
+    entropies = [calculate_entropy(segment) for segment in segments]
+    rmses = [calculate_rmse(segment) for segment in segments]
+    correlations = [calculate_correlation(segment) for segment in segments]
+    series_lengths = [calculate_series_length(segment) for segment in segments]
+    brightness_transitions = [calculate_brightness_transitions(segment) for segment in segments]
+
+    return {
+        "Ентропія Шеннона": entropies,
+        "Кореневе середньоквадратичне відхилення": rmses,
+        "Кореляція": correlations,
+        "Довжина серій однакових елементів": series_lengths,
+        "Кількість перепадів яскравості": brightness_transitions
+    }
+
+
+# Функція для створення графіків порівняння метрик для одного зображення
+def display_metrics_for_image(metrics, image_index):
+    metric_names = list(metrics.keys())
+
+    plt.figure(figsize=(20, 12))
+
+    # Побудова графіків для кожної метрики на одному графіку
+    for metric_name in metric_names:
+        plt.plot(metrics[metric_name], label=metric_name)
+
+    # Налаштування заголовку та осей
+    plt.title(f"Порівняння всіх метрик для зображення {image_index + 1}")
+    plt.xlabel("Індекс сегменту")
+    plt.ylabel("Значення метрики")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
 # Виклик основної функції
@@ -177,3 +314,10 @@ if __name__ == '__main__':
 
     analyze_image_with_threshold(image_path_1, segment_size)
     analyze_image_with_threshold(image_path_2, segment_size)
+    display_comparison_table([image_path_1, image_path_2], segment_size)
+    display_metrics_graphs([image_path_1, image_path_2], segment_size)
+
+    image_paths = [image_path_1, image_path_2]
+    for idx, image_path in enumerate(image_paths):
+        metrics = calculate_metrics_for_segments(image_path, segment_size)
+        display_metrics_for_image(metrics, idx)
