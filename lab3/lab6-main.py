@@ -34,17 +34,19 @@ def calculate_entropy(segment):
 
 
 # Функція для класифікації сегментів за рівнем ентропії
-def classify_entropy_segments(image, segments, entropies, segment_size):
+def classify_entropy_segments(image, segments, entropies, segment_size, upper_high_threshold,
+                              high_threshold, mid_threshold):
     classified_image = np.zeros_like(image)
     h, w, _ = image.shape
     idx = 0
+
     for i in range(0, h, segment_size):
         for j in range(0, w, segment_size):
-            if 4 > entropies[idx] >= 3.6:  # Висока ентропія
+            if upper_high_threshold > entropies[idx] >= high_threshold:  # Висока ентропія
                 color = [255, 0, 0]  # Червоний
-            elif 3.6 > entropies[idx] >= 3.2:  # Середня ентропія
+            elif high_threshold > entropies[idx] >= mid_threshold:  # Середня ентропія
                 color = [0, 255, 0]  # Зелений
-            elif entropies[idx] < 3.2:  # Низька ентропія
+            elif entropies[idx] < mid_threshold:  # Низька ентропія
                 color = [0, 0, 255]  # Синій
             classified_image[i:i + segment_size, j:j + segment_size] = color
             idx += 1
@@ -79,23 +81,31 @@ def classify_brightness_segments(image, block_size=8, low_threshold=50, medium_t
     show_brightness_result("Segmented Image by Brightness (Y Channel)", image, segmentation_image)
 
 
-# Функція для відображення зображень
+# Функція для відображення зображень з накладанням класифікації на оригінал
 def show_classification_result(title, original_image, classified_image):
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(18, 6))
 
     # Відображення оригінального зображення
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     plt.imshow(original_image.astype(np.uint8))
     plt.axis('off')
     plt.title("Original Image")
 
     # Відображення класифікованого зображення
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     plt.imshow(classified_image.astype(np.uint8))
     plt.axis('off')
     plt.title(title)
 
-    # Додаємо легенду внизу полотна
+    # Накладання класифікованого зображення на оригінальне
+    # alpha - прозорість ОРИГІНАЛЬНОГО зображення, beta - прозорість КЛАСИФІКОВАНОГО зображення
+    overlayed_image = cv2.addWeighted(original_image, 1, classified_image, 0.2, 0)
+    plt.subplot(1, 3, 3)
+    plt.imshow(overlayed_image.astype(np.uint8))
+    plt.axis('off')
+    plt.title("Overlayed Image")
+
+    # Додаємо легенду
     plt.figtext(0.5, 0.01, 'Red: High Entropy | Green: Medium Entropy | Blue: Low Entropy',
                 ha='center', fontsize=12)
 
@@ -104,21 +114,29 @@ def show_classification_result(title, original_image, classified_image):
 
 
 def show_brightness_result(title, original_image, segmentation_image):
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(18, 6))
 
     # Відображення оригінального зображення
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     plt.imshow(original_image.astype(np.uint8))
     plt.axis('off')
     plt.title("Original Image")
 
     # Відображення сегментованого зображення
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     plt.imshow(segmentation_image.astype(np.uint8))
     plt.axis('off')
     plt.title(title)
 
-    # Додаємо легенду внизу полотна
+    # Накладання сегментованого зображення на оригінальне
+    # alpha - прозорість ОРИГІНАЛЬНОГО зображення, beta - прозорість КЛАСИФІКОВАНОГО зображення
+    overlayed_image = cv2.addWeighted(original_image, 1, segmentation_image, 0.2, 0)
+    plt.subplot(1, 3, 3)
+    plt.imshow(overlayed_image.astype(np.uint8))
+    plt.axis('off')
+    plt.title("Overlayed Image")
+
+    # Додаємо легенду
     plt.figtext(0.5, 0.01, 'Blue: Low Brightness | Green: Medium Brightness | Red: High Brightness',
                 ha='center', fontsize=12)
 
@@ -127,7 +145,7 @@ def show_brightness_result(title, original_image, segmentation_image):
 
 
 # Функція для відображення таблиці порогових значень
-def show_threshold_table():
+def show_threshold_table(upper_high_threshold, high_threshold, mid_threshold):
     fig, ax = plt.subplots(figsize=(8, 2))
     ax.axis('tight')
     ax.axis('off')
@@ -135,7 +153,9 @@ def show_threshold_table():
     # Дані таблиці порогових значень
     table_data = [
         ["Класифікація", "Порогові Значення", "Кольори"],
-        ["Ентропія", "High: 3.6 - 4.0, Medium: 3.2 - 3.6, Low: < 3.2", "Red | Green | Blue"],
+        ["Ентропія",
+         f"High: {high_threshold} - {upper_high_threshold}, Medium: {mid_threshold} - {high_threshold}, Low: < {mid_threshold}",
+         "Red | Green | Blue"],
         ["Яскравість (Y Channel)", "High: >= 150, Medium: 50 - 150, Low: < 50", "Red | Green | Blue"]
     ]
 
@@ -146,17 +166,18 @@ def show_threshold_table():
 
 
 # Основна функція для запуску аналізу зображення
-def analyze_image_with_classifications(image_path, segment_size=8):
+def analyze_image_with_classifications(image_path, segment_size, upper_high_threshold, high_threshold, mid_threshold):
     image = load_image(image_path)
 
     # Показуємо таблицю порогових значень
-    show_threshold_table()
+    show_threshold_table(upper_high_threshold, high_threshold, mid_threshold)
 
     # Класифікація за ентропією
     segments, total_segments = segment_image(image, segment_size)
     print(f"Загальна кількість сегментів: {total_segments}")
     entropies = [calculate_entropy(segment) for segment in segments]
-    classify_entropy_segments(image, segments, entropies, segment_size)
+    classify_entropy_segments(image, segments, entropies, segment_size, upper_high_threshold, high_threshold,
+                              mid_threshold)
 
     # Класифікація за яскравістю YCrCb
     classify_brightness_segments(image, block_size=segment_size)
@@ -166,4 +187,20 @@ def analyze_image_with_classifications(image_path, segment_size=8):
 if __name__ == '__main__':
     image_path = 'I17_01_1.bmp'
     segment_size = int(input("Введіть розмір сегмента (позитивне ціле число): "))
-    analyze_image_with_classifications(image_path, segment_size)
+
+    entropy_upper_high_threshold = 0
+    entropy_high_threshold = 0
+    entropy_mid_threshold = 0
+
+    # Порогові значення для ентропії
+    if segment_size == 8:
+        entropy_upper_high_threshold = 4
+        entropy_high_threshold = 3.6
+        entropy_mid_threshold = 3.2
+    elif segment_size == 16:
+        entropy_upper_high_threshold = 5
+        entropy_high_threshold = 4.25
+        entropy_mid_threshold = 3.75
+
+    analyze_image_with_classifications(image_path, segment_size, entropy_upper_high_threshold, entropy_high_threshold,
+                                       entropy_mid_threshold)
