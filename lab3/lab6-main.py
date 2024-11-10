@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from scipy.stats import entropy
 
 
@@ -52,7 +53,8 @@ def classify_entropy_segments(image, segments, entropies, segment_size, upper_hi
             idx += 1
 
     # Показуємо оригінальне зображення та класифіковане зображення
-    show_classification_result("Classified by Entropy Level", image, classified_image)
+    show_classification_result("Класифікація за рівнем ентропії", image, classified_image)
+    return classified_image
 
 
 # Функція для сегментації за яскравістю YCrCb
@@ -78,7 +80,8 @@ def classify_brightness_segments(image, block_size=8, low_threshold=50, medium_t
                     segmentation_image[i:i + block_size, j:j + block_size] = colors[seg_type]
 
     # Показуємо оригінальне зображення та сегментоване за яскравістю
-    show_brightness_result("Segmented Image by Brightness (Y Channel)", image, segmentation_image)
+    show_brightness_result("Класифікація за перепадами яскравості", image, segmentation_image)
+    return segmentation_image
 
 
 # Функція для відображення зображень з накладанням класифікації на оригінал
@@ -89,7 +92,7 @@ def show_classification_result(title, original_image, classified_image):
     plt.subplot(1, 3, 1)
     plt.imshow(original_image.astype(np.uint8))
     plt.axis('off')
-    plt.title("Original Image")
+    plt.title("Оригінальне зображення")
 
     # Відображення класифікованого зображення
     plt.subplot(1, 3, 2)
@@ -103,11 +106,15 @@ def show_classification_result(title, original_image, classified_image):
     plt.subplot(1, 3, 3)
     plt.imshow(overlayed_image.astype(np.uint8))
     plt.axis('off')
-    plt.title("Overlayed Image")
+    plt.title("Накладена карта ентропії на оригінальне зображення")
 
     # Додаємо легенду
-    plt.figtext(0.5, 0.01, 'Red: High Entropy | Green: Medium Entropy | Blue: Low Entropy',
-                ha='center', fontsize=12)
+    red_patch = mpatches.Patch(color=(1, 0, 0), label='Висока ентропія')
+    green_patch = mpatches.Patch(color=(0, 1, 0), label='Середня ентропія')
+    blue_patch = mpatches.Patch(color=(0, 0, 1), label='Низька ентропія')
+
+    plt.figlegend(handles=[red_patch, green_patch, blue_patch], loc='lower center', ncol=3, fontsize=12)
+    plt.subplots_adjust(bottom=0.15)  # Відступ для легенди
 
     plt.tight_layout()
     plt.show()
@@ -120,7 +127,7 @@ def show_brightness_result(title, original_image, segmentation_image):
     plt.subplot(1, 3, 1)
     plt.imshow(original_image.astype(np.uint8))
     plt.axis('off')
-    plt.title("Original Image")
+    plt.title("Оригінальне зображення")
 
     # Відображення сегментованого зображення
     plt.subplot(1, 3, 2)
@@ -134,11 +141,52 @@ def show_brightness_result(title, original_image, segmentation_image):
     plt.subplot(1, 3, 3)
     plt.imshow(overlayed_image.astype(np.uint8))
     plt.axis('off')
-    plt.title("Overlayed Image")
+    plt.title("Накладена карта перепадів яскравості на оригінальне зображення")
 
     # Додаємо легенду
-    plt.figtext(0.5, 0.01, 'Blue: Low Brightness | Green: Medium Brightness | Red: High Brightness',
-                ha='center', fontsize=12)
+    red_patch = mpatches.Patch(color=(1, 0, 0), label='Висока яскравість')
+    green_patch = mpatches.Patch(color=(0, 1, 0), label='Середня яскравість')
+    blue_patch = mpatches.Patch(color=(0, 0, 1), label='Низька яскравість')
+
+    plt.figlegend(handles=[red_patch, green_patch, blue_patch], loc='lower center', ncol=3, fontsize=12)
+    plt.subplots_adjust(bottom=0.15)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def show_classification_result_with_overlays(title, original_image, segmentation_image_brightness, segmentation_image_entropy):
+    plt.figure(figsize=(18, 6))
+
+    plt.suptitle(title, fontsize=16)
+
+    # Відображення оригінального зображення
+    plt.subplot(1, 3, 1)
+    plt.imshow(original_image.astype(np.uint8))
+    plt.axis('off')
+    plt.title("Оригінальне зображення")
+
+    # Відображення накладеної карти перепадів яскравості на оригінальне зображення
+    overlayed_brightness_image = cv2.addWeighted(original_image, 1, segmentation_image_brightness, 0.2, 0)
+    plt.subplot(1, 3, 2)
+    plt.imshow(overlayed_brightness_image.astype(np.uint8))
+    plt.axis('off')
+    plt.title("Накладена карта перепадів яскравості на оригінальне зображення")
+
+    # Відображення накладеної карти ентропії на оригінальне зображення
+    overlayed_entropy_image = cv2.addWeighted(original_image, 1, segmentation_image_entropy, 0.2, 0)
+    plt.subplot(1, 3, 3)
+    plt.imshow(overlayed_entropy_image.astype(np.uint8))
+    plt.axis('off')
+    plt.title("Накладена карта ентропії на оригінальне зображення")
+
+    # Додаємо легенду
+    red_patch = mpatches.Patch(color=(1, 0, 0), label='Висока яскравість/Ентропія')
+    green_patch = mpatches.Patch(color=(0, 1, 0), label='Середня яскравість/Ентропія')
+    blue_patch = mpatches.Patch(color=(0, 0, 1), label='Низька яскравість/Ентропія')
+
+    plt.figlegend(handles=[red_patch, green_patch, blue_patch], loc='lower center', ncol=3, fontsize=12)
+    plt.subplots_adjust(bottom=0.15)  # Відступ для легенди
 
     plt.tight_layout()
     plt.show()
@@ -154,14 +202,14 @@ def show_threshold_table(upper_high_threshold, high_threshold, mid_threshold):
     table_data = [
         ["Класифікація", "Порогові Значення", "Кольори"],
         ["Ентропія",
-         f"High: {high_threshold} - {upper_high_threshold}, Medium: {mid_threshold} - {high_threshold}, Low: < {mid_threshold}",
-         "Red | Green | Blue"],
-        ["Яскравість (Y Channel)", "High: >= 150, Medium: 50 - 150, Low: < 50", "Red | Green | Blue"]
+         f"Висока: {high_threshold} - {upper_high_threshold}, Середня: {mid_threshold} - {high_threshold}, Низька: < {mid_threshold}",
+         "Червоний | Зелений | Синій"],
+        ["Яскравість (Y канал)", "Висока: >= 150, Середня: 50 - 150, Низька: < 50", "Червоний | Зелений | Синій"]
     ]
 
     # Додаємо таблицю візуально до зображення
     ax.table(cellText=table_data, loc="center", cellLoc="center", colWidths=[0.25, 0.5, 0.25])
-    plt.title("Threshold Table for Classification")
+    plt.title("Порогова таблиця для класифікації")
     plt.show()
 
 
@@ -176,11 +224,13 @@ def analyze_image_with_classifications(image_path, segment_size, upper_high_thre
     segments, total_segments = segment_image(image, segment_size)
     print(f"Загальна кількість сегментів: {total_segments}")
     entropies = [calculate_entropy(segment) for segment in segments]
-    classify_entropy_segments(image, segments, entropies, segment_size, upper_high_threshold, high_threshold,
+    segmentation_image_entropy = classify_entropy_segments(image, segments, entropies, segment_size, upper_high_threshold, high_threshold,
                               mid_threshold)
 
     # Класифікація за яскравістю YCrCb
-    classify_brightness_segments(image, block_size=segment_size)
+    segmentation_image_brightness = classify_brightness_segments(image, block_size=segment_size)
+
+    show_classification_result_with_overlays("Порівняння за перепадами яскравості та ентропії", image, segmentation_image_brightness, segmentation_image_entropy)
 
 
 # Виклик основної функції
