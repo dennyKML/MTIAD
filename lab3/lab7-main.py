@@ -1,3 +1,5 @@
+import random
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -166,19 +168,20 @@ def visualize_row_regression(segment, restored_segment, entropy_label):
         ax.set_title(f'{entropy_label} Entropy: Row {row + 1}')
         ax.set_xlabel('Pixel Position')
         ax.set_ylabel('Intensity')
-        ax.legend()
+        ax.legend(fontsize=8)
+        ax.grid(alpha=0.5)
 
     # Додаємо оригінальний сегмент
     ax_segment = axes[num_rows]
-    ax_segment.imshow(segment, cmap='gray')
+    ax_segment.imshow(segment, cmap='gray', vmin=0, vmax=255)
     ax_segment.set_title(f'{entropy_label} Entropy: Original Segment')
-    ax_segment.axis('off')
+    # ax_segment.axis('off')
 
     # Додаємо відновлений сегмент
     ax_restored = axes[num_rows + 1]
-    ax_restored.imshow(restored_segment, cmap='gray')
+    ax_restored.imshow(restored_segment, cmap='gray', vmin=0, vmax=255)
     ax_restored.set_title(f'{entropy_label} Entropy: Restored Segment (RMSE = {rmse:.2f})')
-    ax_restored.axis('off')
+    # ax_restored.axis('off')
 
     # Ховаємо зайві subplot'и, якщо вони є
     for idx in range(num_rows + 2, len(axes)):
@@ -210,19 +213,20 @@ def visualize_column_regression(segment, restored_segment, entropy_label):
         ax.set_title(f'{entropy_label} Entropy: Column {col + 1}')
         ax.set_xlabel('Pixel Position')
         ax.set_ylabel('Intensity')
-        ax.legend()
+        ax.legend(fontsize=8)
+        ax.grid(alpha=0.5)
 
     # Оригінальний сегмент
     ax_original = axes[num_cols]
-    ax_original.imshow(segment, cmap='gray')
+    ax_original.imshow(segment, cmap='gray', vmin=0, vmax=255)
     ax_original.set_title(f'{entropy_label} Entropy: Original Segment')
-    ax_original.axis('off')
+    # ax_original.axis('off')
 
     # Відновлений сегмент
     ax_restored = axes[num_cols + 1]
-    ax_restored.imshow(restored_segment, cmap='gray')
+    ax_restored.imshow(restored_segment, cmap='gray', vmin=0, vmax=255)
     ax_restored.set_title(f'{entropy_label} Entropy: Restored Segment (RMSE = {rmse:.2f})')
-    ax_restored.axis('off')
+    # ax_restored.axis('off')
 
     # Ховаємо зайві subplot'и, якщо вони є
     for idx in range(num_cols + 2, len(axes)):
@@ -338,28 +342,31 @@ def main(image_path, segment_size):
     )
 
     # Візуалізація результатів регресії для сегментів з низькою ентропією
-    for segment, i, j in low_entropy_segments:
+    if low_entropy_segments:
+        random_segment = random.choice(low_entropy_segments)
+        segment, i, j = random_segment
         restored_rows, _ = approximate_rows(segment)
         visualize_row_regression(segment, restored_rows, "Low")
         restored_cols, _ = approximate_columns(segment)
         visualize_column_regression(segment, restored_cols, "Low")
-        break  # Візуалізуємо лише один сегмент для прикладу
 
     # Візуалізація результатів регресії для сегментів із середньою ентропією
-    for segment, i, j in medium_entropy_segments:
+    if medium_entropy_segments:
+        random_segment = random.choice(medium_entropy_segments)
+        segment, i, j = random_segment
         restored_rows, _ = approximate_rows(segment)
         visualize_row_regression(segment, restored_rows, "Medium")
         restored_cols, _ = approximate_columns(segment)
         visualize_column_regression(segment, restored_cols, "Medium")
-        break  # Візуалізуємо лише один сегмент для прикладу
 
     # Візуалізація результатів регресії для сегментів із високою ентропією
-    for segment, i, j in high_entropy_segments:
+    if high_entropy_segments:
+        random_segment = random.choice(high_entropy_segments)
+        segment, i, j = random_segment
         restored_rows, _ = approximate_rows(segment)
         visualize_row_regression(segment, restored_rows, "High")
         restored_cols, _ = approximate_columns(segment)
         visualize_column_regression(segment, restored_cols, "High")
-        break  # Візуалізуємо лише один сегмент для прикладу
 
     # Вивід загальної статистики
     print("\nСтатистика СКВ для сегментів низької ентропії:")
